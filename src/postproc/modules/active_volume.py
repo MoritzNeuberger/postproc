@@ -41,7 +41,7 @@ def is_point_inside_polycone(x, y, z, r_values, z_values):
     return False
 
 
-# @njit
+@njit
 def is_in_active_volume_polycone(x, y, z, vol, dl_input):
     pos = dl_input[vol]["center"]
     r_dl = dl_input[vol]["r_dl"]
@@ -191,12 +191,12 @@ def m_active_volume(para, input, output, pv):
         pv[out_n["w_t"]] = pv[in_n["w_t"]][ak.any(mask, axis=-1)]
 
     if para["type"] == "deadlayer":
+        if isinstance(para["file"], str):
+            para["file"] = Path(para["file"])
         mask = generate_mask_deadlayer(
             pv[in_n["posx"]], pv[in_n["posy"]], pv[in_n["posz"]], pv[in_n["vol"]], para
         )
         pv[out_n["vol_red"]] = ak.firsts(pv[in_n["vol"]], axis=-1)
 
         for key in in_n:
-            tmp = pv[in_n[key]][mask]
-            mask_tmp = ak.Array([[True for arr2 in arr1 if len(arr2)] for arr1 in tmp])
-            pv[out_n[key]] = tmp[mask_tmp]
+            pv[out_n[key]] = pv[in_n[key]][mask]
