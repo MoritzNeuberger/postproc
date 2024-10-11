@@ -2,83 +2,73 @@ from __future__ import annotations
 
 import awkward as ak
 from numba import njit
+from numba.typed import List
 
 
-def subtract_smallest_time(t_sv, t_all):
-    return t_sv - ak.min(t_all, axis=1)
+def subtract_smallest_time(t, t_all):
+    if isinstance(t[0], (list, ak.Array)):
+        return ak.Array([subtract_smallest_time(t[i], t_all[i]) for i in range(len(t))])
+    min_t_all = min(t_all)
+    return ak.Array([time - min_t_all for time in t])
 
 
 def define_windows(t_sub, dT=1e4):
-    t_sub_sort = ak.sort(t_sub, axis=1)
-
-    @njit
-    def create_windows(vec, wdl):
-        output = []
-        for x in vec:
-            tmp_list = [0]
-            for y in x:
-                if y > tmp_list[-1] + wdl:
-                    tmp_list.append(y)
-            output.append(tmp_list)
-        return output
-
-    return ak.Array(create_windows(t_sub_sort, dT))
+    if isinstance(t_sub[0], (list, ak.Array)):
+        return ak.Array([define_windows(t_sub[i], dT) for i in range(len(t_sub))])
+    t_sub_sort = ak.sort(t_sub)
+    output = []
+    for i in range(len(t_sub_sort)):
+        if len(output) == 0 or t_sub_sort[i] > output[-1] + dT:
+            output.append(t_sub_sort[i])
+    return ak.Array(output)
 
 
 def generate_map(t_sub, w_t):
+    if isinstance(t_sub[0], (list, ak.Array)):
+        return ak.Array([generate_map(t_sub[i], w_t[i]) for i in range(len(t_sub))])
+
     @njit
     def _internal(t_sub, w_t):
         output = []
-        for i in range(len(t_sub)):
-            tmp_list = []
-            for k in range(len(t_sub[i])):
-                for j in range(len(w_t[i]) - 1):
-                    if t_sub[i][k] >= w_t[i][j] and t_sub[i][k] < w_t[i][j + 1]:
-                        tmp_list.append(j)
-            output.append(tmp_list)
+        for k in range(len(t_sub)):
+            for j in range(len(w_t) - 1):
+                if t_sub[k] >= w_t[j] and t_sub[k] < w_t[j + 1]:
+                    output.append(j)
+            if t_sub[k] >= w_t[-1]:
+                output.append(len(w_t) - 1)
         return output
 
-    return ak.Array(_internal(t_sub, w_t))
+    return _internal(List(t_sub), List(w_t))
 
 
-@njit
-def generate_windowed_hit_list(mapping, v_in, index):
-    output = []
-    for i in range(len(mapping)):
-        if mapping[i] == index:
-            output.append(v_in[i])
-    if len(output) == 0:
-        output.append(0)
-    return output
+def generate_windowed_hits(mapping, v_in):
+    if isinstance(v_in[0], (list, ak.Array)):
+        return ak.Array(
+            [generate_windowed_hits(mapping[i], v_in[i]) for i in range(len(mapping))]
+        )
 
-
-@njit
-def generate_all_windowed_hit_lists(mapping, v_in):
-    list_in_indices = []
-    output = []
-    for i in range(len(mapping)):
-        if mapping[i] not in list_in_indices:
-            list_in_indices.append(mapping[i])
-    for i in range(len(list_in_indices)):
-        output.append(generate_windowed_hit_list(mapping, v_in, i))
-
-    return output
-
-
-def generate_all_windowed_hits_for_all_events(mapping, v_in):
     @njit
     def _internal(mapping, v_in):
+        list_in_indices = []
+        for i in range(len(mapping)):
+            if mapping[i] not in list_in_indices:
+                list_in_indices.append(mapping[i])
+
         output = []
-        for i in range(len(v_in)):
-            output.append(generate_all_windowed_hit_lists(mapping[i], v_in[i]))
+        for i in range(len(list_in_indices)):
+            output.append([v_in[j] for j in range(len(mapping)) if mapping[j] == i])
+
         return output
 
-    return ak.Array(_internal(mapping, v_in))
+    return ak.Array(_internal(List(mapping), List(v_in)))
 
 
 def m_window(para, input, output, pv):
     """
     Windowing module for the postprocessing pipeline.
+
+    Groups the input data into time windows according to the t array.
+    A dimension is added to the output arrays.
 
     Parameters:
     para (dict): Dictionary containing parameters for the windowing module.
@@ -130,8 +120,8 @@ def m_window(para, input, output, pv):
     w_t = define_windows(t_sub, para["dT"])
     map = generate_map(t_sub, w_t)
 
-    pv[out_n["t_sub"]] = generate_all_windowed_hits_for_all_events(map, t_sub)  # t_sub
+    pv[out_n["t_sub"]] = generate_windowed_hits(map, t_sub)
     pv[out_n["w_t"]] = w_t
 
     for key in list(out_n.keys())[2:]:
-        pv[out_n[key]] = generate_all_windowed_hits_for_all_events(map, pv[in_n[key]])
+        pv[out_n[key]] = generate_windowed_hits(map, pv[in_n[key]])

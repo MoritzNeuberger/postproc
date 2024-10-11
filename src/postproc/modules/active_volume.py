@@ -13,7 +13,9 @@ def generate_mask_cylinder(x, y, z, para):
     r = np.sqrt(x**2 + y**2)
     mask = ak.ones_like(x)
     mask = mask - (r > para["conditions"]["r"])
-    mask = mask - ((z > para["conditions"]["h1"]) + (z < para["conditions"]["h2"]))
+    mask = mask - (
+        (z > para["conditions"]["h_top"]) + (z < para["conditions"]["h_bottom"])
+    )
 
     inverse = False
     if "inverse" in para:
@@ -26,33 +28,21 @@ def generate_mask_cylinder(x, y, z, para):
 
 @njit
 def is_point_inside_polycone(x, y, z, r_values, z_values):
-    # Step 1: Convert (x, y, z) to cylindrical coordinates (r, z)
     r_point = np.sqrt(x**2 + y**2)
-
-    # Step 2: Check if the z-coordinate is within the z-range of the polycone
     if z < min(z_values) or z > max(z_values):
-        return False  # Point is outside based on z
-
-    # Step 3: Determine which segment of the polycone the z value falls into
+        return False
     for i in range(len(z_values) - 1):
         z_low, z_high = z_values[i], z_values[i + 1]
         r_low, r_high = r_values[i], r_values[i + 1]
-
         if z_low <= z <= z_high:
-            # Step 4: Interpolate the radius at the point's z value
-            t = (z - z_low) / (
-                z_high - z_low
-            )  # Normalized z position between z_low and z_high
-            r_interp = r_low + t * (r_high - r_low)  # Linear interpolation of r
-
-            # Step 5: Check if the point's radial distance is less than the interpolated radius
+            t = (z - z_low) / (z_high - z_low)
+            r_interp = r_low + t * (r_high - r_low)
             return r_point <= r_interp
+    return False
 
-    return False  # Point is outside
 
-
-@njit
-def is_in_active_volume(x, y, z, vol, dl_input):
+# @njit
+def is_in_active_volume_polycone(x, y, z, vol, dl_input):
     pos = dl_input[vol]["center"]
     r_dl = dl_input[vol]["r_dl"]
     z_dl = dl_input[vol]["z_dl"]
@@ -107,32 +97,27 @@ def generate_mask_deadlayer(x, y, z, vol, para):
 
     dl_input_numba = convert_to_numba_dict(dl_input)
 
-    @njit
-    def _internal(x, y, z, vol, dl_input):
-        output = []
-        for i in range(len(x)):  # event
-            tmp = []
-            for j in range(len(x[i])):  # window
-                tmp2 = []
-                for k in range(len(x[i][j])):  # detector
-                    tmp3 = []
-                    for m in range(len(x[i][j][k])):  # hit
-                        if vol[i][j][k][m] > 1000000:
-                            tmp3.append(
-                                is_in_active_volume(
-                                    x[i][j][k][m],
-                                    y[i][j][k][m],
-                                    z[i][j][k][m],
-                                    vol[i][j][k][m],
-                                    dl_input,
-                                )
-                            )
-                    tmp2.append(tmp3)
-                tmp.append(tmp2)
-            output.append(tmp)
-        return output
+    def recursion_function(x, y, z, vol, dl_input_numba):
+        if isinstance(x[0], (list, ak.Array)):
+            return ak.Array(
+                [
+                    recursion_function(x[i], y[i], z[i], vol[i], dl_input_numba)
+                    for i in range(len(x))
+                ]
+            )
 
-    return ak.Array(_internal(x, y, z, vol, dl_input_numba))
+        @njit
+        def _internal(x, y, z, vol, dl_input):
+            output = []
+            for i in range(len(x)):
+                output.append(
+                    is_in_active_volume_polycone(x[i], y[i], z[i], vol[i], dl_input)
+                )
+            return output
+
+        return _internal(x, y, z, vol, dl_input_numba)
+
+    return recursion_function(x, y, z, vol, dl_input_numba)
 
 
 def m_active_volume(para, input, output, pv):

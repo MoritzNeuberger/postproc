@@ -35,12 +35,11 @@ dependencies = [
   "awkward",
   "numpy",
   "numba",
-  "json",
   "tqdm",
   "uproot",
-  "concurrent",
   "argparse",
-  "h5py"
+  "h5py",
+  "pytest"
 ]
 
 [project.optional-dependencies]
