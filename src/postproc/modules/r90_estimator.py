@@ -53,21 +53,33 @@ def m_r90_estimator(para, input, output, pv):  # noqa: ARG001
     para (dict): Dictionary containing parameters for the module.
         None necessary.
 
-    input (list): List of input parameters in the following order:
-        - edep: Name of energy depositions array.
-        - posx: Name of x positions array.
-        - posy: Name of y positions array.
-        - posz: Name of z positions array.
+    input (dict): Dictionary containing input parameters.
+        required:
+        - edep: Name of the energy deposition array.
+        - posx: Name of the x positions array.
+        - posy: Name of the y positions array.
+        - posz: Name of the z positions array.
 
-    output (list): List of output parameters in the following order:
-        - r90: R90 estimation.
+    output (dict): Dictionary containing output parameters.
+        required:
+        - r90: Name of the R90 array.
 
     pv (dict): Dictionary to store the processed values.
 
     """
-    in_n = {"edep": input[0], "x": input[1], "y": input[2], "z": input[3]}
 
-    out_n = {"r90": output[0]}
-    pv[out_n["r90"]] = calculate_R90(
-        pv[in_n["edep"]], pv[in_n["x"]], pv[in_n["y"]], pv[in_n["z"]]
+    required_input = ["edep", "posx", "posy", "posz"]
+    for r in required_input:
+        if r not in input:
+            text = f"Required input {r} not found in input. All required inputs are {required_input}."
+            raise ValueError(text)
+
+    required_output = ["r90"]
+    for r in required_output:
+        if r not in output:
+            text = f"Required output {r} not found in output. All required outputs are {required_output}."
+            raise ValueError(text)
+
+    pv[output["r90"]] = calculate_R90(
+        pv[input["edep"]], pv[input["posx"]], pv[input["posy"]], pv[input["posz"]]
     )

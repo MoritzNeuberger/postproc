@@ -146,8 +146,23 @@ def test_m_active_volume():
         tf.flush()
 
         para = {"type": "deadlayer", "file": Path(tf.name)}
-        input = ["t", "edep", "vol", "x", "y", "z"]
-        output = ["t_a", "edep_a", "vol_a", "x_a", "y_a", "z_a", "vol_red"]
+        input = {
+            "posx": "x",
+            "posy": "y",
+            "posz": "z",
+            "vol": "vol",
+            "t": "t",
+            "edep": "edep",
+        }
+        output = {
+            "posx": "x_a",
+            "posy": "y_a",
+            "posz": "z_a",
+            "vol": "vol_a",
+            "t": "t_a",
+            "edep": "edep_a",
+            "vol_red": "vol_red",
+        }
         pv = {
             "t": ak.Array([[0, 1], [0, 1]]),
             "edep": ak.Array([[1, 1], [0, 1]]),
@@ -162,6 +177,41 @@ def test_m_active_volume():
         result = pv["edep_a"]
 
         assert ak.to_list(result) == ak.to_list(expected_edep)
+
+    para = {
+        "type": "cylinder",
+        "conditions": {"r": 0.9, "h_top": 0.9, "h_bottom": -0.9},
+    }
+    input = {
+        "posx": "x",
+        "posy": "y",
+        "posz": "z",
+        "vol": "vol",
+        "t": "t",
+        "edep": "edep",
+    }
+    output = {
+        "posx": "x_a",
+        "posy": "y_a",
+        "posz": "z_a",
+        "vol": "vol_a",
+        "t": "t_a",
+        "edep": "edep_a",
+    }
+    pv = {
+        "t": ak.Array([[0, 1], [0, 1]]),
+        "edep": ak.Array([[1, 1], [0, 1]]),
+        "x": ak.Array([[0, 1], [0, 1]]),
+        "y": ak.Array([[0, 1], [0, 1]]),
+        "z": ak.Array([[0, 1], [0, 1]]),
+        "vol": ak.Array([[1, 1], [1, 1]]),
+    }
+
+    m_active_volume(para, input, output, pv)
+    expected_edep = ak.Array([[1], [0]])
+    result = pv["edep_a"]
+
+    assert ak.to_list(result) == ak.to_list(expected_edep)
 
 
 if __name__ == "__main__":

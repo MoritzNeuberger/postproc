@@ -13,8 +13,8 @@ def generate_output(wt_m1, wt_m2, val, para):
             ]
         )
 
-    t_min = para["t_min"]
-    t_max = para["t_max"]
+    t_min = para["coincidence_gate"][0]
+    t_max = para["coincidence_gate"][1]
 
     @njit
     def _internal(wt_m1, wt_m2, val, t_min, t_max):
@@ -39,28 +39,42 @@ def m_coincidence_window(para, input, output, pv):
 
     Parameters:
     para (dict): Dictionary containing parameters for the module.
-        - t_min (float): minimum time difference for coincidence.
-        - t_max (float): maximum time difference for coincidence.
+        - coincidence_gate (list): List containing two float values representing the lower and upper time thresholds for the coincidence region.
 
-    input (list): List of input parameters in the following order:
-        - w_t_1: Name of first windowed time array.
-        - w_t_2: Name of second windowed time array.
-        - val: Name of value array.
+    input (dict): Dictionary containing input parameters.
+        required:
+        - w_t_1: Name of the first time windowed data.
+        - w_t_2: Name of the second time windowed data.
+        additional:
+        - additional values: Name of the additional values associated with the second time windowed data.
 
-    output (list): List of output parameters in the following order:
-        - val: Array of coincident events values.
+    output (dict): Dictionary containing output parameters.
+        additional:
+        - additional values: Name of the output values that are within the coincidence region. One output array for each additional input array.
 
     pv (dict): Dictionary to store the processed values.
 
     """
-    in_n = {
-        "w_t_1": input[0],
-        "w_t_2": input[1],
-        "val": input[2],
-    }
 
-    out_n = {"val": output[0]}
+    required_input = ["w_t_1", "w_t_2"]
+    for r in required_input:
+        if r not in input:
+            text = f"Required input {r} not found in input. All required inputs are {required_input}."
+            raise ValueError(text)
 
-    pv[out_n["val"]] = generate_output(
-        pv[in_n["w_t_1"]], pv[in_n["w_t_2"]], pv[in_n["val"]], para
-    )
+    if len(input) <= 2:
+        text = "Required at least one input val in input."
+        raise ValueError(text)
+
+    if len(output) != len(input) - 2:
+        text = "For each val in input, a corresponding val in output is required."
+        raise ValueError(text)
+
+    for r in output:
+        if r not in input:
+            text = f"Output {r} not found in input."
+            raise ValueError(text)
+
+        pv[output[r]] = generate_output(
+            pv[input["w_t_1"]], pv[input["w_t_2"]], pv[input[r]], para
+        )

@@ -8,8 +8,8 @@ from postproc.modules.sum import m_sum
 
 def test_m_sum():
     para = {}
-    input = ["val"]
-    output = ["total_val"]
+    input = {"val": "val"}
+    output = {"val": "total_val"}
     pv = {"val": ak.Array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])}
 
     m_sum(para, input, output, pv)
@@ -21,8 +21,8 @@ def test_m_sum():
 
 def test_m_sum_empty():
     para = {}
-    input = ["val"]
-    output = ["total_val"]
+    input = {"val": "val"}
+    output = {"val": "total_val"}
     pv = {"val": ak.Array([[], [], []])}
 
     m_sum(para, input, output, pv)
@@ -34,8 +34,8 @@ def test_m_sum_empty():
 
 def test_m_sum_single_element():
     para = {}
-    input = ["val"]
-    output = ["total_val"]
+    input = {"val": "val"}
+    output = {"val": "total_val"}
     pv = {"val": ak.Array([[1], [2], [3]])}
 
     m_sum(para, input, output, pv)

@@ -59,53 +59,49 @@ def m_group_sensitive_volume(para, input, output, pv):
 
     Parameters:
     para (dict): Dictionary containing parameters for the module.
+        required:
         - group (string,int): Group name/number to select.
+        - sensitive_volumes (dict): Dictionary containing the sensitive volumes.
 
-    input (list): List of input parameters in the following order:
-        - t: Name of time array.
-        - edep: Name of energy depositions array.
-        - vol: Name of volumes array.
-        - posx: Name of x positions array.
-        - posy: Name of y positions array.
-        - posz: Name of z positions array.
+    input (dict): Dictionary containing input parameters.
+        required:
+        - vol: Name of the sensitive volume array.
+        additional:
+        - arbitrary number of input arrays to be grouped.
 
-    output (list): List of output parameters in the following order:
-        - grouped_t: Array of grouped times.
-        - grouped_edep: Array of grouped energy depositions.
-        - grouped_vol: Array of grouped volumes.
-        - grouped_posx: Array of grouped x positions.
-        - grouped_posy: Array of grouped y positions.
-        - grouped_posz: Array of grouped
+    output (dict): Dictionary containing output parameters.
+        required:
+        - vol: Name of the sensitive volume array.
+        additional:
+        - arbitrary number of output arrays to store the grouped. One output array for each input array.
 
 
     pv (dict): Dictionary to store the processed values.
 
     """
-    in_n = {
-        "t": input[0],
-        "edep": input[1],
-        "vol": input[2],
-        "posx": input[3],
-        "posy": input[4],
-        "posz": input[5],
-    }
 
-    out_n = {
-        "t": output[0],
-        "edep": output[1],
-        "vol": output[2],
-        "posx": output[3],
-        "posy": output[4],
-        "posz": output[5],
-    }
+    required_input = ["vol"]
+    for r in required_input:
+        if r not in input:
+            text = f"Required input {r} not found in input. All required inputs are {required_input}."
+            raise ValueError(text)
+
+    if len(output) != len(input):
+        text = "Number of input and output parameters must be the same."
+        raise ValueError(text)
+
+    for r in input:
+        if r not in output:
+            text = f"All input parameters must have an output parameter. {r} not found in output"
+            raise ValueError(text)
 
     if "group" in para:
         mask = generate_group_mask(
-            pv[in_n["vol"]], para["group"], para["sensitive_volumes"]
+            pv[input["vol"]], para["group"], para["sensitive_volumes"]
         )
-        for key, value in out_n.items():
-            pv[value] = pv[in_n[key]][mask]
+        for key, value in output.items():
+            pv[value] = pv[input[key]][mask]
 
     else:
-        for key, value in out_n.items():
-            pv[value] = group_all_in_detector_ids(pv[in_n["vol"]], pv[in_n[key]])
+        for key, value in output.items():
+            pv[value] = group_all_in_detector_ids(pv[input["vol"]], pv[input[key]])

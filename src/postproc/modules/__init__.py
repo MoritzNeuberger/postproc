@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from .acceptance_range import m_acceptance_range
 from .active_volume import m_active_volume
 from .coincidence_window import m_coincidence_window
 from .group_sensitive_volume import m_group_sensitive_volume
 from .r90_estimator import m_r90_estimator
 from .sum import m_sum
-from .threshold import m_threshold
 from .window import m_window
 
 __all__ = [
@@ -15,5 +15,5 @@ __all__ = [
     "m_sum",
     "m_window",
     "m_coincidence_window",
-    "m_threshold",
+    "m_acceptance_range",
 ]

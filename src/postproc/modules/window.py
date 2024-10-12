@@ -8,6 +8,7 @@ from numba.typed import List
 def subtract_smallest_time(t, t_all):
     if isinstance(t[0], (list, ak.Array)):
         return ak.Array([subtract_smallest_time(t[i], t_all[i]) for i in range(len(t))])
+
     min_t_all = min(t_all)
     return ak.Array([time - min_t_all for time in t])
 
@@ -15,6 +16,7 @@ def subtract_smallest_time(t, t_all):
 def define_windows(t_sub, dT=1e4):
     if isinstance(t_sub[0], (list, ak.Array)):
         return ak.Array([define_windows(t_sub[i], dT) for i in range(len(t_sub))])
+
     t_sub_sort = ak.sort(t_sub)
     output = []
     for i in range(len(t_sub_sort)):
@@ -72,56 +74,63 @@ def m_window(para, input, output, pv):
 
     Parameters:
     para (dict): Dictionary containing parameters for the windowing module.
+        required:
         - dT (float): Time window duration.
 
-    input (list): List of input parameters in the following order:
-        - t_all: Name of all times array.
-        - t: Name of times array.
-        - edep: Name of energy depositions array.
-        - vol: Name of volumes array.
-        - posx: Name of x positions array.
-        - posy: Name of y positions array.
-        - posz: Name of z positions array.
+    input (dict): Dictionary containing input parameters for the windowing module.
+        required:
+        - t_all: Name of the full time array.
+        - t: Name of the time array.
+        additional:
+        - arbitrary many additional input arrays.
 
-    output (list): List of output parameters in the following order:
-        - w_t: Array of window times array.
-        - t_sub: Array of subtracted times array.
-        - edep: Array of energy depositions array.
-        - vol: Array of volumes array.
-        - posx: Array of x positions array.
-        - posy: Array of y positions array.
-        - posz: Array of z positions array.
+    output (dict): Dictionary containing output parameters for the windowing module.
+        required:
+        - w_t: Name of the time window array.
+        - t_sub: Name of the subtracted time array.
+        additional:
+        - arbitrary many additional output arrays. One for each additional input array.
+
+
 
     pv (dict): Dictionary to store the processed values.
 
     """
 
-    in_n = {
-        "t_all": input[0],
-        "t": input[1],
-        "edep": input[2],
-        "vol": input[3],
-        "posx": input[4],
-        "posy": input[5],
-        "posz": input[6],
-    }
+    required_input = ["t_all", "t"]
+    for r in required_input:
+        if r not in input:
+            text = f"Required input {r} not found in input. All required inputs are {required_input}."
+            raise ValueError(text)
 
-    out_n = {
-        "w_t": output[0],
-        "t_sub": output[1],
-        "edep": output[2],
-        "vol": output[3],
-        "posx": output[4],
-        "posy": output[5],
-        "posz": output[6],
-    }
+    required_output = ["w_t", "t_sub"]
+    for r in required_output:
+        if r not in output:
+            text = f"Required output {r} not found in output. All required outputs are {required_output}."
+            raise ValueError(text)
 
-    t_sub = subtract_smallest_time(pv[in_n["t"]], pv[in_n["t_all"]])
+    required_para = ["dT"]
+    for r in required_para:
+        if r not in para:
+            text = f"Required parameter {r} not found in para. All required parameters are {required_para}."
+            raise ValueError(text)
+
+    if len(output) != len(input):
+        text = "Number of input and output parameters must be the same."
+        raise ValueError(text)
+
+    for r in input:
+        if r not in output and r not in required_input:
+            text = f"All additional input parameters must have an output parameter. {r} not found in output."
+            raise ValueError(text)
+
+    t_sub = subtract_smallest_time(pv[input["t"]], pv[input["t_all"]])
     w_t = define_windows(t_sub, para["dT"])
     map = generate_map(t_sub, w_t)
 
-    pv[out_n["t_sub"]] = generate_windowed_hits(map, t_sub)
-    pv[out_n["w_t"]] = w_t
+    pv[output["t_sub"]] = generate_windowed_hits(map, t_sub)
+    pv[output["w_t"]] = w_t
 
-    for key in list(out_n.keys())[2:]:
-        pv[out_n[key]] = generate_windowed_hits(map, pv[in_n[key]])
+    for key in input:
+        if key in output:
+            pv[output[key]] = generate_windowed_hits(map, pv[input[key]])

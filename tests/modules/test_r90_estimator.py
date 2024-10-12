@@ -35,8 +35,8 @@ def test_calculate_R90():
 
 def test_m_r90_estimator():
     para = {}
-    input = ["edep", "posx", "posy", "posz"]
-    output = ["r90"]
+    input = {"edep": "edep", "posx": "posx", "posy": "posy", "posz": "posz"}
+    output = {"r90": "r90"}
     pv = {
         "edep": ak.Array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]]),
         "posx": ak.Array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]]),

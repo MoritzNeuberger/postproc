@@ -52,15 +52,23 @@ def test_m_group_sensitive_volume():
         "group": 1,
         "sensitive_volumes": {"sensVolID": [1, 2, 3, 4, 5], "group": [1, 1, 2, 2, 3]},
     }
-    input = ["t", "edep", "vol", "posx", "posy", "posz"]
-    output = [
-        "grouped_t",
-        "grouped_edep",
-        "grouped_vol",
-        "grouped_posx",
-        "grouped_posy",
-        "grouped_posz",
-    ]
+    input = {
+        "t": "t",
+        "edep": "edep",
+        "vol": "vol",
+        "posx": "posx",
+        "posy": "posy",
+        "posz": "posz",
+    }  # ["t", "edep", "vol", "posx", "posy", "posz"]
+    output = {
+        "t": "grouped_t",
+        "edep": "grouped_edep",
+        "vol": "grouped_vol",
+        "posx": "grouped_posx",
+        "posy": "grouped_posy",
+        "posz": "grouped_posz",
+    }
+
     pv = {
         "t": ak.Array([1, 2, 3, 4, 5]),
         "edep": ak.Array([10, 20, 30, 40, 50]),

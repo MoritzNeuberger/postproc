@@ -5,26 +5,37 @@ import awkward as ak
 
 def m_sum(para, input, output, pv):  # noqa: ARG001
     """
-    Sum module for the postprocessing pipeline.
+        Sum module for the postprocessing pipeline.
 
-    Calculates the sum of the lowest dimension of the input array.
-    Reduces one dimension of the array.
+        Calculates the sum of the lowest dimension of the input array.
+        Reduces one dimension of the array.
 
-    Parameters:
-    para (dict): Dictionary containing parameters for the module.
+        Parameters:
+        para (dict): Dictionary containing parameters for the module.
+            None necessary.
+    W
+        input (dict): Dictionary containing input parameters.
+            required:
+            - val: Name of the values array.
 
-    input (list): List of input parameters in the following order:
-        - val: Name of array.
+        output (dict): Dictionary containing output parameters.
+            required:
+            - val: Name of the summed values array.
 
-    output (list): List of output parameters in the following order:
-        - total_val: Total value.
-
-    pv (dict): Dictionary to store the processed values.
+        pv (dict): Dictionary to store the processed values.
 
     """
-    # Module implementation
-    in_n = {"val": input[0]}
 
-    out_n = {"val": output[0]}
+    required_input = ["val"]
+    for r in required_input:
+        if r not in input:
+            text = f"Required input {r} not found in input. All required inputs are {required_input}."
+            raise ValueError(text)
 
-    pv[out_n["val"]] = ak.sum(pv[in_n["val"]], axis=-1)
+    required_output = ["val"]
+    for r in required_output:
+        if r not in output:
+            text = f"Required output {r} not found in output. All required outputs are {required_output}."
+            raise ValueError(text)
+
+    pv[output["val"]] = ak.sum(pv[input["val"]], axis=-1)

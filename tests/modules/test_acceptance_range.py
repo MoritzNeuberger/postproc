@@ -3,19 +3,19 @@ from __future__ import annotations
 import awkward as ak
 import pytest
 
-from postproc.modules.threshold import m_threshold
+from postproc.modules.acceptance_range import m_acceptance_range
 
 
-def test_m_threshold():
+def test_m_acceptance_range():
     para = {"thr": [10, 20]}
-    input = ["val"]
-    output = ["val"]
+    input = {"val": "val"}  # ["val"]
+    output = {"val": "mask"}
     pv = {"val": ak.Array([5, 15, 25, 10, 20, 12, 18])}
 
-    m_threshold(para, input, output, pv)
+    m_acceptance_range(para, input, output, pv)
 
     expected = ak.Array([False, True, False, False, False, True, True])
-    result = pv["val"]
+    result = pv["mask"]
 
     assert ak.to_list(result) == ak.to_list(expected)
 
@@ -23,10 +23,10 @@ def test_m_threshold():
     para = {"thr": [15, 25]}
     pv = {"val": ak.Array([5, 15, 25, 10, 20, 12, 18])}
 
-    m_threshold(para, input, output, pv)
+    m_acceptance_range(para, input, output, pv)
 
     expected = ak.Array([False, False, False, False, True, False, True])
-    result = pv["val"]
+    result = pv["mask"]
 
     assert ak.to_list(result) == ak.to_list(expected)
 

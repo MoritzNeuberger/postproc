@@ -128,75 +128,85 @@ def m_active_volume(para, input, output, pv):
 
     Parameters:
     para (dict): Dictionary containing parameters for the module.
-        - active_threshold (float): Threshold for active volume.
+        required:
+        - type (str): Type of active volume. Options are 'cylinder' or 'deadlayer'.
 
-    input (list): List of input parameters in the following order:
-        - t: Name of times array.
-        - edep: Name of energy depositions array.
-        - vol: Name of volumes array.
-        - posx: Name of x positions array.
-        - posy: Name of y positions array.
-        - posz: Name of z positions array.
+        required for 'cylinder':
+        - conditions (dict): Dictionary containing the conditions for the cylinder.
+            - r (float): Radius of the cylinder.
+            - h_top (float): Top boundary of the cylinder.
+            - h_bottom (float): Bottom boundary of the cylinder.
 
-    output (list): List of output parameters in the following order:
-        - t: Array of times.
-        - edep: Array of energy depositions.
-        - vol: Array of volumes.
-        - posx: Array of x positions.
-        - posy: Array of y positions.
-        - posz: Array of z positions.
-        - vol_red: Array of reduced volumes.
+        required for 'deadlayer':
+        - file (str): Path to the deadlayer input file.
+
+    input (dict): Dictionary containing input parameters.
+        required:
+        - posx: Name of the x positions array.
+        - posy: Name of the y positions array.
+        - posz: Name of the z positions array.
+        - vol: Name of the volume array.
+
+        additional:
+        - arbitrary number of input arrays to be filtered.
+
+    output (dict): Dictionary containing output parameters.
+        required:
+        - posx: Name of the filtered x positions array.
+        - posy: Name of the filtered y positions array.
+        - posz: Name of the filtered z positions array.
+        - vol: Name of the filtered volume array.
+
+        required for deadlayer type:
+        - vol_red: Name of the reduced volume array.
+
+        additional:
+        - arbitrary number of output arrays. One for each additional input array.
 
     pv (dict): Dictionary to store the processed values.
 
     """
-    if len(output) > 2:
-        in_n = {
-            "t": input[0],
-            "edep": input[1],
-            "vol": input[2],
-            "posx": input[3],
-            "posy": input[4],
-            "posz": input[5],
-        }
 
-        out_n = {
-            "t": output[0],
-            "edep": output[1],
-            "vol": output[2],
-            "posx": output[3],
-            "posy": output[4],
-            "posz": output[5],
-            "vol_red": output[6],
-        }
+    required_input = ["posx", "posy", "posz", "vol"]
+    for r in required_input:
+        if r not in input:
+            text = f"Required input {r} not found in input. All required inputs are {required_input}."
+            raise ValueError(text)
 
-    else:
-        in_n = {
-            "w_t": input[0],
-            "edep": input[1],
-            "vol": input[2],
-            "posx": input[3],
-            "posy": input[4],
-            "posz": input[5],
-        }
-        out_n = {"w_t": output[0], "edep": output[1]}
+    if "type" not in para:
+        text = (
+            "Parameter 'type' not found in para. Options are 'cylinder' or 'deadlayer'"
+        )
+        raise ValueError(text)
+
+    for r in input:
+        if r not in output:
+            text = f"For each input parameter, there must be a corresponding output parameter. {r} is in input but not in output."
+            raise ValueError(text)
+
+    if para["type"] == "deadlayer" and "vol_red" not in output:
+        text = "Output parameter 'vol_red' is required for deadlayer type."
+        raise ValueError(text)
 
     if para["type"] == "cylinder":
         mask = generate_mask_cylinder(
-            pv[in_n["posx"]], pv[in_n["posy"]], pv[in_n["posz"]], para
+            pv[input["posx"]], pv[input["posy"]], pv[input["posz"]], para
         )
-        tmp = pv[in_n["edep"]][mask]
-        mask_tmp = ak.Array([[True for arr2 in arr1 if len(arr2)] for arr1 in tmp])
-        pv[out_n["edep"]] = tmp[mask_tmp]
-        pv[out_n["w_t"]] = pv[in_n["w_t"]][ak.any(mask, axis=-1)]
+
+        for key in input:
+            pv[output[key]] = pv[input[key]][mask]
 
     if para["type"] == "deadlayer":
         if isinstance(para["file"], str):
             para["file"] = Path(para["file"])
         mask = generate_mask_deadlayer(
-            pv[in_n["posx"]], pv[in_n["posy"]], pv[in_n["posz"]], pv[in_n["vol"]], para
+            pv[input["posx"]],
+            pv[input["posy"]],
+            pv[input["posz"]],
+            pv[input["vol"]],
+            para,
         )
-        pv[out_n["vol_red"]] = ak.firsts(pv[in_n["vol"]], axis=-1)
+        pv[output["vol_red"]] = ak.firsts(pv[input["vol"]], axis=-1)
 
-        for key in in_n:
-            pv[out_n[key]] = pv[in_n[key]][mask]
+        for key in input:
+            pv[output[key]] = pv[input[key]][mask]

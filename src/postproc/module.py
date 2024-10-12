@@ -26,7 +26,7 @@ class module:
         if module == "coincidence_window":
             return mod.m_coincidence_window
         if module == "threshold":
-            return mod.m_threshold
+            return mod.m_acceptance_range
         error_message = f"{module} not defined."
         raise NotImplementedError(error_message)
 
