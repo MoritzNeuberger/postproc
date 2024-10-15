@@ -1,22 +1,11 @@
 from __future__ import annotations
 
-import warnings
-
 import awkward as ak
 import numba as nb
 import numpy as np
 from numba import njit
-from numba.core.errors import (
-    NumbaDeprecationWarning,
-    NumbaPendingDeprecationWarning,
-    NumbaTypeSafetyWarning,
-)
 
 from .misc import python_list_to_numba_list
-
-warnings.simplefilter("ignore", category=NumbaDeprecationWarning)
-warnings.simplefilter("ignore", category=NumbaPendingDeprecationWarning)
-warnings.simplefilter("ignore", NumbaTypeSafetyWarning)
 
 
 def generate_group_mask(vol, group, sensitive_volumes):
