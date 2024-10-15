@@ -5,5 +5,5 @@ from pathlib import Path
 
 
 def load_inst(file):
-    with Path.open(file) as f:
+    with Path.open(Path(file), mode="r") as f:
         return json.load(f)

@@ -17,7 +17,12 @@ def get_R90_per_detector(v_dist, v_edep):
 
 
 def calculate_R90(v_edep_hwd, v_posx_hwd, v_posy_hwd, v_posz_hwd):
-    if isinstance(v_edep_hwd[0], (list, ak.Array)):
+    if len(v_edep_hwd) == 0:
+        return 0.0
+
+    if isinstance(v_edep_hwd, (list, ak.Array)) and isinstance(
+        v_edep_hwd[0], (list, ak.Array)
+    ):
         return ak.Array(
             [
                 calculate_R90(

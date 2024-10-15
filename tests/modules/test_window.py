@@ -53,13 +53,13 @@ def test_generate_windowed_hits():
     v_in = [10, 20, 30, 40]
     expected = ak.Array([[10, 30], [20, 40]])
     result = generate_windowed_hits(mapping, v_in)
-    assert result.tolist() == expected.to_list()
+    assert result.to_list() == expected.to_list()
 
     mapping = [[0, 1], [0, 1]]
     v_in = [[10, 20], [30, 40]]
     expected = ak.Array([[[10], [20]], [[30], [40]]])
     result = generate_windowed_hits(mapping, v_in)
-    assert result.tolist() == expected.to_list()
+    assert result.to_list() == expected.to_list()
 
 
 def test_m_window():

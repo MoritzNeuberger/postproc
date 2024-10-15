@@ -6,7 +6,9 @@ from pathlib import Path
 import awkward as ak
 import numpy as np
 from numba import njit, types
-from numba.typed import Dict
+from numba.typed import Dict, List
+
+from .misc import python_list_to_numba_list
 
 
 def generate_mask_cylinder(x, y, z, para):
@@ -27,18 +29,24 @@ def generate_mask_cylinder(x, y, z, para):
 
 
 @njit
-def is_point_inside_polycone(x, y, z, r_values, z_values):
-    r_point = np.sqrt(x**2 + y**2)
-    if z < min(z_values) or z > max(z_values):
-        return False
-    for i in range(len(z_values) - 1):
-        z_low, z_high = z_values[i], z_values[i + 1]
-        r_low, r_high = r_values[i], r_values[i + 1]
-        if z_low <= z <= z_high:
-            t = (z - z_low) / (z_high - z_low)
-            r_interp = r_low + t * (r_high - r_low)
-            return r_point <= r_interp
-    return False
+def is_point_inside_polycone(x, y, z, r_val, z_val):
+    r = np.sqrt(x**2 + y**2)
+    n = len(r_val)
+    inside = False
+    p2r = 0.0
+    p2z = 0.0
+    rints = 0.0
+    p1r, p1z = r_val[0], z_val[0]
+    for i in range(n + 1):
+        p2r, p2z = r_val[i % n], z_val[i % n]
+        if z > min(p1z, p2z) and z <= max(p1z, p2z) and r <= max(p1r, p2r):
+            if p1z != p2z:
+                rints = (z - p1z) * (p2r - p1r) / (p2z - p1z) + p1r
+            if p1r == p2r or r <= rints:
+                inside = not inside
+        p1r, p1z = p2r, p2z
+
+    return inside
 
 
 @njit
@@ -50,6 +58,9 @@ def is_in_active_volume_polycone(x, y, z, vol, dl_input):
 
 
 def generate_mask_deadlayer(x, y, z, vol, para):
+    if isinstance(para["file"], str):
+        para["file"] = Path(para["file"])
+
     with Path.open(para["file"]) as f:
         dl_input = json.load(f)
 
@@ -97,25 +108,30 @@ def generate_mask_deadlayer(x, y, z, vol, para):
 
     dl_input_numba = convert_to_numba_dict(dl_input)
 
+    @njit
+    def _internal(x, y, z, vol, dl_input):
+        output = []
+        for i in range(len(x)):
+            output.append(
+                is_in_active_volume_polycone(x[i], y[i], z[i], vol[i], dl_input)
+            )
+        return output
+
+    @njit
     def recursion_function(x, y, z, vol, dl_input_numba):
-        if isinstance(x[0], (list, ak.Array)):
-            return ak.Array(
+        if isinstance(x[0], List):
+            return List(
                 [
                     recursion_function(x[i], y[i], z[i], vol[i], dl_input_numba)
                     for i in range(len(x))
                 ]
             )
-
-        @njit
-        def _internal(x, y, z, vol, dl_input):
-            output = []
-            for i in range(len(x)):
-                output.append(
-                    is_in_active_volume_polycone(x[i], y[i], z[i], vol[i], dl_input)
-                )
-            return output
-
         return _internal(x, y, z, vol, dl_input_numba)
+
+    x = python_list_to_numba_list(ak.Array(x).to_list())
+    y = python_list_to_numba_list(ak.Array(y).to_list())
+    z = python_list_to_numba_list(ak.Array(z).to_list())
+    vol = python_list_to_numba_list(ak.Array(vol).to_list())
 
     return recursion_function(x, y, z, vol, dl_input_numba)
 
@@ -197,8 +213,6 @@ def m_active_volume(para, input, output, pv):
             pv[output[key]] = pv[input[key]][mask]
 
     if para["type"] == "deadlayer":
-        if isinstance(para["file"], str):
-            para["file"] = Path(para["file"])
         mask = generate_mask_deadlayer(
             pv[input["posx"]],
             pv[input["posy"]],

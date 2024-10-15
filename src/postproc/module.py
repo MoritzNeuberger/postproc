@@ -19,8 +19,8 @@ class module:
             return mod.m_window
         if module == "active_volume":
             return mod.m_active_volume
-        if module == "sum_energy":
-            return mod.m_sum_energy
+        if module == "sum":
+            return mod.m_sum
         if module == "r90_estimator":
             return mod.m_r90_estimator
         if module == "coincidence_window":

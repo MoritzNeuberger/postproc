@@ -41,8 +41,8 @@ def test_group_all_in_detector_ids():
     assert ak.to_list(result) == ak.to_list(expected)
 
     v_voln_hw = ak.Array([[1, 2], [1, 3]])
-    v_in = ak.Array([[10, 20], [30, 40]])
-    expected = ak.Array([[[10], [20]], [[30], [40]]])
+    v_in = ak.Array([[10.0, 20.0], [30.0, 40.0]])
+    expected = ak.Array([[[10.0], [20.0]], [[30.0], [40.0]]])
     result = group_all_in_detector_ids(v_voln_hw, v_in)
     assert ak.to_list(result) == ak.to_list(expected)
 

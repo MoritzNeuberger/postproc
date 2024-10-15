@@ -32,6 +32,15 @@ def test_calculate_R90():
         for a, b in zip(ak.to_list(result), ak.to_list(expected))
     )
 
+    v_edep_hwd = ak.Array([])
+    v_posx_hwd = ak.Array([])
+    v_posy_hwd = ak.Array([])
+    v_posz_hwd = ak.Array([])
+
+    expected = 0.0
+    result = calculate_R90(v_edep_hwd, v_posx_hwd, v_posy_hwd, v_posz_hwd)
+    assert result == expected
+
 
 def test_m_r90_estimator():
     para = {}

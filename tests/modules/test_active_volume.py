@@ -116,9 +116,9 @@ def test_generate_mask_deadlayer():
 
         tf.flush()
 
-        x = np.array([0, 1])
-        y = np.array([0, 1])
-        z = np.array([0, 1])
+        x = np.array([0.5, 1])
+        y = np.array([0.5, 1])
+        z = np.array([0.5, 1])
         vol = np.array([1, 1])
         para = {"file": Path(tf.name)}
 
@@ -164,11 +164,11 @@ def test_m_active_volume():
             "vol_red": "vol_red",
         }
         pv = {
-            "t": ak.Array([[0, 1], [0, 1]]),
+            "t": ak.Array([[0.5, 1], [0.5, 1]]),
             "edep": ak.Array([[1, 1], [0, 1]]),
-            "x": ak.Array([[0, 1], [0, 1]]),
-            "y": ak.Array([[0, 1], [0, 1]]),
-            "z": ak.Array([[0, 1], [0, 1]]),
+            "x": ak.Array([[0.5, 1], [0.5, 1]]),
+            "y": ak.Array([[0.5, 1], [0.5, 1]]),
+            "z": ak.Array([[0.5, 1], [0.5, 1]]),
             "vol": ak.Array([[1, 1], [1, 1]]),
         }
 

@@ -1,8 +1,22 @@
 from __future__ import annotations
 
+import warnings
+
 import awkward as ak
+import numba as nb
 import numpy as np
 from numba import njit
+from numba.core.errors import (
+    NumbaDeprecationWarning,
+    NumbaPendingDeprecationWarning,
+    NumbaTypeSafetyWarning,
+)
+
+from .misc import python_list_to_numba_list
+
+warnings.simplefilter("ignore", category=NumbaDeprecationWarning)
+warnings.simplefilter("ignore", category=NumbaPendingDeprecationWarning)
+warnings.simplefilter("ignore", NumbaTypeSafetyWarning)
 
 
 def generate_group_mask(vol, group, sensitive_volumes):
@@ -20,32 +34,50 @@ def generate_group_mask(vol, group, sensitive_volumes):
 
 
 def group_all_in_detector_ids(v_voln_hw, v_in):
-    if isinstance(v_voln_hw[0], (list, ak.Array)):
-        return ak.Array(
-            [
-                group_all_in_detector_ids(v_voln_hw[i], v_in[i])
-                for i in range(len(v_voln_hw))
-            ]
-        )
-
     @njit
-    def _internal(v_voln_hw, v_in):
-        list_indices = []
+    def _internal(builder, v_voln_hw, v_in):
+        # Ensure that list_indices is a numba typed list
+        list_indices = nb.typed.List.empty_list(v_voln_hw._dtype)
         for i in range(len(v_voln_hw)):
-            if v_voln_hw[i] not in list_indices and v_voln_hw[i] > -1:
-                list_indices.append(v_voln_hw[i])
+            cont_flag = False
+            for j in range(len(list_indices)):
+                if v_voln_hw[i] == list_indices[j]:
+                    cont_flag = True
+                    break
+            if cont_flag:
+                continue
+            list_indices.append(v_voln_hw[i])
 
-        output = []
         for i in range(len(list_indices)):
-            tmp = []
+            builder.begin_list()
             for j in range(len(v_in)):
                 if list_indices[i] == v_voln_hw[j]:
-                    tmp.append(v_in[j])
-            output.append(tmp)
+                    builder.append(v_in[j])
+            builder.end_list()
 
-        return output
+    @njit
+    def recursive(builder, v_voln_hw, v_in):
+        if isinstance(v_voln_hw[0], (nb.typed.List)):
+            for i in range(len(v_voln_hw)):
+                builder.begin_list()
+                recursive(builder, v_voln_hw[i], v_in[i])
+                builder.end_list()
+            return
 
-    return ak.Array(_internal(v_voln_hw, v_in))
+        _internal(builder, v_voln_hw, v_in)
+
+    builder = ak.ArrayBuilder()
+
+    if isinstance(v_voln_hw, ak.Array):
+        v_voln_hw_list = python_list_to_numba_list(v_voln_hw.to_list())
+        v_in_list = python_list_to_numba_list(v_in.to_list())
+    else:
+        v_voln_hw_list = python_list_to_numba_list(v_voln_hw)
+        v_in_list = python_list_to_numba_list(v_in)
+
+    recursive(builder, v_voln_hw_list, v_in_list)
+
+    return builder.snapshot()
 
 
 def m_group_sensitive_volume(para, input, output, pv):

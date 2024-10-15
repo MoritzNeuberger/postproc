@@ -1,34 +1,62 @@
 from __future__ import annotations
 
 import awkward as ak
+import numpy as np
 from numba import njit
 from numba.typed import List
 
+from .misc import python_list_to_numba_list
+
 
 def subtract_smallest_time(t, t_all):
-    if isinstance(t[0], (list, ak.Array)):
-        return ak.Array([subtract_smallest_time(t[i], t_all[i]) for i in range(len(t))])
+    @njit
+    def _internal(t, min_t_all):
+        return [time - min_t_all for time in t]
 
-    min_t_all = min(t_all)
-    return ak.Array([time - min_t_all for time in t])
+    @njit
+    def recursion_function(t, t_all):
+        if isinstance(t[0], (list, List)):
+            return List([recursion_function(t[i], t_all[i]) for i in range(len(t))])
+        min_t_all = min(t_all)
+        return _internal(t, min_t_all)
+
+    t = python_list_to_numba_list(ak.Array(t).to_list())
+    t_all = python_list_to_numba_list(ak.Array(t_all).to_list())
+    return ak.Array(recursion_function(t, t_all))
 
 
-def define_windows(t_sub, dT=1e4):
-    if isinstance(t_sub[0], (list, ak.Array)):
-        return ak.Array([define_windows(t_sub[i], dT) for i in range(len(t_sub))])
+def define_windows(t_sub, dT):
+    @njit
+    def _internal(t_sub, dT):
+        t_sub_sort = List(np.sort(t_sub))
+        output = List()
+        last_time = 0.0
+        for i in range(len(t_sub_sort)):
+            if len(output) == 0:
+                output.append(t_sub_sort[i])
+                last_time = t_sub_sort[i]
+            else:
+                diff = last_time + dT
+                if t_sub_sort[i] > diff:
+                    output.append(t_sub_sort[i])
+                    last_time = t_sub_sort[i]
+        return output
 
-    t_sub_sort = ak.sort(t_sub)
-    output = []
-    for i in range(len(t_sub_sort)):
-        if len(output) == 0 or t_sub_sort[i] > output[-1] + dT:
-            output.append(t_sub_sort[i])
-    return ak.Array(output)
+    @njit
+    def recursion_function(t_sub, dT):
+        if isinstance(t_sub[0], List):
+            output = List()
+            for i in range(len(t_sub)):
+                output.append(_internal(t_sub[i], dT))
+            return output
+        return _internal(t_sub, dT)
+
+    t_sub_list = python_list_to_numba_list(ak.to_list(t_sub))
+
+    return ak.Array(recursion_function(t_sub_list, dT))
 
 
 def generate_map(t_sub, w_t):
-    if isinstance(t_sub[0], (list, ak.Array)):
-        return ak.Array([generate_map(t_sub[i], w_t[i]) for i in range(len(t_sub))])
-
     @njit
     def _internal(t_sub, w_t):
         output = []
@@ -40,15 +68,21 @@ def generate_map(t_sub, w_t):
                 output.append(len(w_t) - 1)
         return output
 
-    return _internal(List(t_sub), List(w_t))
+    @njit
+    def _recursion_function(t_sub, w_t):
+        if isinstance(t_sub[0], (list, List)):
+            return List(
+                [_recursion_function(t_sub[i], w_t[i]) for i in range(len(t_sub))]
+            )
+        return _internal(t_sub, w_t)
+
+    t_sub = python_list_to_numba_list(ak.Array(t_sub).to_list())
+    w_t = python_list_to_numba_list(ak.Array(w_t).to_list())
+
+    return ak.Array(_recursion_function(t_sub, w_t))
 
 
 def generate_windowed_hits(mapping, v_in):
-    if isinstance(v_in[0], (list, ak.Array)):
-        return ak.Array(
-            [generate_windowed_hits(mapping[i], v_in[i]) for i in range(len(mapping))]
-        )
-
     @njit
     def _internal(mapping, v_in):
         list_in_indices = []
@@ -62,7 +96,18 @@ def generate_windowed_hits(mapping, v_in):
 
         return output
 
-    return ak.Array(_internal(List(mapping), List(v_in)))
+    @njit
+    def _recursion_function(mapping, v_in):
+        if isinstance(v_in[0], (list, List)):
+            return List(
+                [_recursion_function(mapping[i], v_in[i]) for i in range(len(mapping))]
+            )
+        return _internal(mapping, v_in)
+
+    mapping = python_list_to_numba_list(ak.Array(mapping).to_list())
+    v_in = python_list_to_numba_list(ak.Array(v_in).to_list())
+
+    return ak.Array(_recursion_function(mapping, v_in))
 
 
 def m_window(para, input, output, pv):
