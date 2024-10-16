@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import awkward as ak
+import numba as nb
+import numpy as np
 from numba import jit
 from numba.typed import List
 
@@ -18,27 +20,28 @@ def define_windows(t_sub, dT):
     Assumes t_sub is a numba typed list.
     """
 
-    @jit(forceobj=True, looplift=True)
+    @jit(forceobj=True, looplift=False)
     def _internal(t_sub, dT):
-        output = []
+        output = List.empty_list(nb.float64)
         last_time = 0.0
-        for i in range(len(t_sub)):
+        t_sub_sorted = np.sort(t_sub)
+        for i in range(len(t_sub_sorted)):
             if len(output) == 0:
-                output.append(t_sub[i])
-                last_time = t_sub[i]
+                output.append(t_sub_sorted[i])
+                last_time = t_sub_sorted[i]
             else:
                 diff = last_time + dT
-                if t_sub[i] > diff:
-                    output.append(t_sub[i])
-                    last_time = t_sub[i]
+                if t_sub_sorted[i] > diff:
+                    output.append(t_sub_sorted[i])
+                    last_time = t_sub_sorted[i]
         return output
 
-    @jit(forceobj=True, looplift=True)
+    @jit(forceobj=True, looplift=False)
     def recursion_function(t_sub, dT):
-        if isinstance(t_sub[0], list):
+        if isinstance(t_sub[0], (list, List, ak.Array, np.ndarray)):
             output = []
             for i in range(len(t_sub)):
-                output.append(_internal(t_sub[i], dT))
+                output.append(recursion_function(t_sub[i], dT))
             return output
         return _internal(t_sub, dT)
 
@@ -51,21 +54,28 @@ def generate_map(t_sub, w_t):
     Assumes t_sub and w_t are numba typed lists.
     """
 
-    @jit(forceobj=True, looplift=True)
+    # @jit(forceobj=True, looplift=False)
+    @jit
     def _internal(t_sub, w_t):
-        output = []
+        output = List.empty_list(nb.int64)
         for k in range(len(t_sub)):
             for j in range(len(w_t) - 1):
                 if t_sub[k] >= w_t[j] and t_sub[k] < w_t[j + 1]:
                     output.append(j)
+                    break
+                if t_sub[k] < w_t[j]:
+                    break
             if t_sub[k] >= w_t[-1]:
                 output.append(len(w_t) - 1)
         return output
 
-    @jit(forceobj=True, looplift=True)
+    @jit(forceobj=True, looplift=False)
     def _recursion_function(t_sub, w_t):
-        if isinstance(t_sub[0], (list, List)):
-            return [_recursion_function(t_sub[i], w_t[i]) for i in range(len(t_sub))]
+        if isinstance(t_sub[0], (list, List, ak.Array, np.ndarray)):
+            output = []
+            for i in range(len(t_sub)):
+                output.append(_recursion_function(t_sub[i], w_t[i]))
+            return output
         return _internal(t_sub, w_t)
 
     return _recursion_function(t_sub, w_t)
@@ -77,7 +87,7 @@ def generate_windowed_hits(mapping, v_in):
     Assumes mapping and v_in are numba typed lists.
     """
 
-    @jit(looplift=True)
+    @jit
     def _internal(mapping, v_in):
         list_in_indices = []
         for i in range(len(mapping)):
@@ -88,9 +98,9 @@ def generate_windowed_hits(mapping, v_in):
             output.append([v_in[j] for j in range(len(mapping)) if mapping[j] == i])
         return output
 
-    @jit(forceobj=True, looplift=True)
+    # @jit(forceobj=True, looplift=False)
     def _recursion_function(mapping, v_in):
-        if isinstance(v_in[0], list):
+        if isinstance(v_in[0], (list, List, ak.Array, np.ndarray)):
             return [
                 _recursion_function(mapping[i], v_in[i]) for i in range(len(mapping))
             ]
@@ -159,7 +169,7 @@ def m_window(para, input, output, pv):
             raise ValueError(text)
 
     t_sub = subtract_smallest_time(pv[input["t"]], pv[input["t_all"]])
-    w_t = define_windows(ak.sort(t_sub), para["dT"])
+    w_t = define_windows(t_sub, para["dT"])
     map = generate_map(t_sub, w_t)
 
     pv[output["t_sub"]] = ak.Array(generate_windowed_hits(map, t_sub))

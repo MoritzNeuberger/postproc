@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gc
+
 import awkward as ak
 import h5py
 import numpy as np
@@ -44,6 +46,8 @@ class data_manager:
                 self.module_manager.run(processing_variables, pbar, self.task_id)
                 for key in self.output_dict:
                     self.output_dict[key].extend(processing_variables[key])
+                del processing_variables
+                gc.collect()
                 pbar.update(report.stop - report.start)
             self.output_dict = ak.Array(self.output_dict)
             pbar.close()
@@ -60,6 +64,8 @@ class data_manager:
             self.module_manager.run(processing_variables, pbar, self.task_id)
             for key in self.output_dict:
                 self.output_dict[key].extend(processing_variables[key])
+            del processing_variables
+            gc.collect()
             self.output_dict = ak.Array(self.output_dict)
             pbar.close()
 
@@ -71,3 +77,6 @@ class data_manager:
             )
             group.attrs["form"] = form.to_json()
             group.attrs["length"] = length
+
+        del self.output_dict
+        gc.collect()

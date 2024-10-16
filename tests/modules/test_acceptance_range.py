@@ -14,7 +14,7 @@ def test_m_acceptance_range():
 
     m_acceptance_range(para, input, output, pv)
 
-    expected = ak.Array([False, True, False, False, False, True, True])
+    expected = ak.Array([False, True, False, True, True, True, True])
     result = pv["mask"]
 
     assert ak.to_list(result) == ak.to_list(expected)
@@ -25,7 +25,7 @@ def test_m_acceptance_range():
 
     m_acceptance_range(para, input, output, pv)
 
-    expected = ak.Array([False, False, False, False, True, False, True])
+    expected = ak.Array([False, True, True, False, True, False, True])
     result = pv["mask"]
 
     assert ak.to_list(result) == ak.to_list(expected)

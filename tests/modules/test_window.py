@@ -31,13 +31,13 @@ def test_define_windows():
     dT = 5
     expected = [1, 10]
     result = define_windows(t_sub, dT)
-    assert result == expected
+    assert ak.Array(result).to_list() == expected
 
     t_sub = [[1, 2, 3], [10, 11, 12]]
     dT = 5
     expected = [[1], [10]]
     result = define_windows(t_sub, dT)
-    assert result == expected
+    assert ak.Array(result).to_list() == expected
 
 
 def test_generate_map():
@@ -45,7 +45,7 @@ def test_generate_map():
     w_t = [[0, 5], [5, 10]]
     expected = [[0, 0, 0], [1, 1, 1]]
     result = generate_map(t_sub, w_t)
-    assert result == expected
+    assert ak.Array(result).to_list() == expected
 
 
 def test_generate_windowed_hits():

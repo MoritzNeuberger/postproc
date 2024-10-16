@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from numba import types
+from numba import jit, types
 from numba.typed import List
 
 
@@ -26,6 +26,7 @@ def infer_numba_type_and_depth(py_elem, depth=0):
 
 
 # @njit
+@jit(forceobj=True, looplift=False)
 def _convert_to_numba_list(py_list, elem_type, depth):
     """
     Recursively convert a Python list to a Numba typed List.

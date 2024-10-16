@@ -25,8 +25,14 @@ class module:
             return mod.m_r90_estimator
         if module == "coincidence_window":
             return mod.m_coincidence_window
-        if module == "threshold":
+        if module == "acceptance_range":
             return mod.m_acceptance_range
+        if module == "max":
+            return mod.m_max
+        if module == "mask":
+            return mod.m_mask
+        if module == "detector_active_time":
+            return mod.m_detector_active_time
         error_message = f"{module} not defined."
         raise NotImplementedError(error_message)
 

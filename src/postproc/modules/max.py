@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import awkward as ak
 
-def m_acceptance_range(para, input, output, pv):
+
+def m_max(para, input, output, pv):  # noqa: ARG001
     """
-    Threshold module for the postprocessing pipeline.
+    Max module for the postprocessing pipeline.
 
-    Returns a awkward array of boolean values in the same shape as the input array, indicating whether the input values are within the threshold range.
+    Given an awkward array, it returns a awkward array with the maximum values of the lowest dimension.
+    Reduces the dimension of the array by one.
 
     Parameters:
     para (dict): Dictionary containing parameters for the module.
-        - thr (list): List containing two float values representing the lower and upper energy thresholds.
+        None necessary.
 
     input (dict): Dictionary containing input parameters.
         required:
@@ -17,7 +20,7 @@ def m_acceptance_range(para, input, output, pv):
 
     output (dict): Dictionary containing output parameters.
         required:
-        - val: Array of boolean values indicating whether the input values are within the threshold.
+        - val: Name of the summed values array.
 
     pv (dict): Dictionary to store the processed values.
 
@@ -35,12 +38,4 @@ def m_acceptance_range(para, input, output, pv):
             text = f"Required output {r} not found in output. All required outputs are {required_output}."
             raise ValueError(text)
 
-    required_para = ["thr"]
-    for r in required_para:
-        if r not in para:
-            text = f"Required parameter {r} not found in para. All required parameters are {required_para}."
-            raise ValueError(text)
-
-    pv[output["val"]] = (pv[input["val"]] >= para["thr"][0]) * (
-        pv[input["val"]] <= para["thr"][1]
-    ) > 0
+    pv[output["val"]] = ak.max(pv[input["val"]], axis=-1)

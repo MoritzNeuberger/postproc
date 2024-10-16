@@ -97,7 +97,9 @@ class process_manager:
                 "Running with multiprocessing. Number of threads: %d", self.threads
             )
             # Use multiprocessing to run run_post_proc with the arguments
-            with ProcessPoolExecutor(max_workers=self.threads) as executor:
+            with ProcessPoolExecutor(
+                max_workers=self.threads, max_tasks_per_child=1
+            ) as executor:
                 # Unpack the arguments using *args
                 futures = [executor.submit(run_post_proc, arg) for arg in self.args]
                 # iterate over all submitted tasks and get results as they are available
