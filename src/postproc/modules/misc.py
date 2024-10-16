@@ -14,12 +14,13 @@ def infer_numba_type_and_depth(py_elem, depth=0):
     if isinstance(py_elem, float):
         return types.float64, depth
     if isinstance(py_elem, list):
-        if len(py_elem) == 0:
-            text = "Cannot infer type from an empty list"
-            raise ValueError(text)
-        # Recursively infer the type of the first element of the list
-        elem_type, new_depth = infer_numba_type_and_depth(py_elem[0], depth + 1)
-        return types.ListType(elem_type), new_depth  # Return the list type here
+        if not py_elem:  # Handle empty list
+            return None, depth
+        for elem in py_elem:
+            elem_type, new_depth = infer_numba_type_and_depth(elem, depth + 1)
+            if elem_type is not None:
+                return types.ListType(elem_type), new_depth  # Return the list type here
+        return None, depth
     text = f"Unsupported type: {type(py_elem)}"
     raise TypeError(text)
 

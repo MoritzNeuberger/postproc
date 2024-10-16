@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import argparse
-import warnings
 
 import process_manager
 from misc import load_inst
-
-warnings.filterwarnings("ignore")
 
 
 def main(infile):

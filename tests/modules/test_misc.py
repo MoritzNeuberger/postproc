@@ -30,9 +30,10 @@ def test_infer_numba_type_and_depth():
         3,
     )
 
-    # Test with empty list
-    with pytest.raises(ValueError, match="Cannot infer type from an empty list"):
-        infer_numba_type_and_depth([])
+    assert infer_numba_type_and_depth([[[], []], [[3], [4]]]) == (
+        types.ListType(types.ListType(types.ListType(types.int64))),
+        3,
+    )
 
     # Test with unsupported type
     with pytest.raises(TypeError, match="Unsupported type: <class 'str'>"):

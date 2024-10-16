@@ -81,6 +81,8 @@ addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
 xfail_strict = true
 filterwarnings = [
   "error",
+  "ignore::PendingDeprecationWarning",
+  "ignore::numba.core.errors.NumbaWarning"
 ]
 log_cli_level = "INFO"
 testpaths = [

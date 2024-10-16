@@ -66,7 +66,6 @@ class data_manager:
     def write_output(self):
         with h5py.File(self.outfile, "w") as f:
             group = f.create_group("awkward")
-            # print(ak.to_packed(self.output_dict))
             form, length, container = ak.to_buffers(
                 ak.to_packed(self.output_dict), container=group
             )

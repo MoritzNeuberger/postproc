@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import tempfile
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -8,6 +9,13 @@ import awkward as ak
 import h5py
 import numpy as np
 from process import run_post_proc
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+# logging.basicConfig(level=logging.DEBUG)
 
 
 class process_manager:
@@ -19,8 +27,10 @@ class process_manager:
         self.threads = inst["para"]["threads"]
         self.mode = inst["para"].get("mode", "")
 
+        self.log_initialization()
+
         # Get input files and corresponding output files
-        self.input_files = list(Path(self.in_folder).glob("*." + self.in_format))[:2]
+        self.input_files = list(Path(self.in_folder).glob("*." + self.in_format))
         if self.mode != "summarize":
             self.output_files = [
                 Path(self.out).joinpath(infile.stem + ".hdf5")
@@ -52,6 +62,15 @@ class process_manager:
             )
         )
 
+    def log_initialization(self):
+        logging.info("Process manager initialized with the following parameters:")
+        logging.info("Input folder: %s", self.in_folder)
+        logging.info("Input format: %s", self.in_format)
+        logging.info("Output folder: %s", self.out)
+        logging.info("Overwrite: %s", self.overwrite)
+        logging.info("Threads: %s", self.threads)
+        logging.info("Mode: %s", self.mode)
+
     def summarize(self):
         def gen_files():
             for file in self.output_files:
@@ -74,14 +93,20 @@ class process_manager:
 
     def run_processes(self):
         if self.threads > 1:
+            logging.debug(
+                "Running with multiprocessing. Number of threads: %d", self.threads
+            )
             # Use multiprocessing to run run_post_proc with the arguments
             with ProcessPoolExecutor(max_workers=self.threads) as executor:
                 # Unpack the arguments using *args
                 futures = [executor.submit(run_post_proc, arg) for arg in self.args]
                 # iterate over all submitted tasks and get results as they are available
                 for future in as_completed(futures):
-                    # get the result for the next completed task
-                    future.result()  # blocks
+                    try:
+                        result = future.result()  # blocks
+                        logging.debug("Process completed with result: %s", result)
+                    except Exception as e:
+                        logging.error("Process raised an exception: %s", e)
             # results = executor.map(lambda args: run_post_proc(*args), self.args)
         else:
             for i in range(len(self.args)):

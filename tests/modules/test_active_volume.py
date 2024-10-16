@@ -125,7 +125,18 @@ def test_generate_mask_deadlayer():
         result = generate_mask_deadlayer(x, y, z, vol, para)
         expected = [True, False]
 
-        assert result == expected
+        assert ak.to_list(result) == expected
+
+        x = ak.Array([[], [0.5, 1]])
+        y = ak.Array([[], [0.5, 1]])
+        z = ak.Array([[], [0.5, 1]])
+        vol = ak.Array([[], [1, 1]])
+        para = {"file": Path(tf.name)}
+
+        result = generate_mask_deadlayer(x, y, z, vol, para)
+        expected = [[], [True, False]]
+
+        assert ak.to_list(result) == expected
 
 
 def test_m_active_volume():

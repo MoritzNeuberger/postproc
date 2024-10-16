@@ -110,16 +110,11 @@ def generate_mask_deadlayer(x, y, z, vol, para):
 
     @njit
     def _internal(x, y, z, vol, dl_input):
-        output = []
-        for i in range(len(x)):
-            output.append(
-                is_in_active_volume_polycone(x[i], y[i], z[i], vol[i], dl_input)
-            )
-        return output
+        return is_in_active_volume_polycone(x, y, z, vol, dl_input)
 
     @njit
     def recursion_function(x, y, z, vol, dl_input_numba):
-        if isinstance(x[0], List):
+        if isinstance(x, List):
             return List(
                 [
                     recursion_function(x[i], y[i], z[i], vol[i], dl_input_numba)
@@ -133,7 +128,7 @@ def generate_mask_deadlayer(x, y, z, vol, para):
     z = python_list_to_numba_list(ak.Array(z).to_list())
     vol = python_list_to_numba_list(ak.Array(vol).to_list())
 
-    return recursion_function(x, y, z, vol, dl_input_numba)
+    return ak.Array(recursion_function(x, y, z, vol, dl_input_numba))
 
 
 def m_active_volume(para, input, output, pv):
