@@ -25,9 +25,7 @@ class process_manager:
         self.out = inst["io"]["output"]
         self.overwrite = overwrite
         self.threads = inst["para"]["threads"]
-        self.mode = inst["para"].get("mode", "")
-
-        self.log_initialization()
+        self.mode = inst["para"].get("mode", "individual")
 
         # Get input files and corresponding output files
         self.input_files = list(Path(self.in_folder).glob("*." + self.in_format))
@@ -62,6 +60,8 @@ class process_manager:
             )
         )
 
+        self.log_initialization()
+
     def log_initialization(self):
         logging.info("Process manager initialized with the following parameters:")
         logging.info("Input folder: %s", self.in_folder)
@@ -70,6 +70,7 @@ class process_manager:
         logging.info("Overwrite: %s", self.overwrite)
         logging.info("Threads: %s", self.threads)
         logging.info("Mode: %s", self.mode)
+        logging.info("Number of input files found: %d", len(self.input_files))
 
     def summarize(self):
         def gen_files():
@@ -91,6 +92,8 @@ class process_manager:
             group.attrs["form"] = form.to_json()
             group.attrs["length"] = length
 
+        Path.rmdir(self.tmp_dir)
+
     def run_processes(self):
         if self.threads > 1:
             logging.debug(
@@ -109,7 +112,7 @@ class process_manager:
                         logging.debug("Process completed with result: %s", result)
                     except Exception as e:
                         logging.error("Process raised an exception: %s", e)
-            # results = executor.map(lambda args: run_post_proc(*args), self.args)
+
         else:
             for i in range(len(self.args)):
                 run_post_proc(self.args[i])

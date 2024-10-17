@@ -1,0 +1,124 @@
+{
+    "io":{
+        "input":{
+            "folder":"global/path/to/output/",
+            "format":"root"
+	    },
+        "output":"global/path/to/processed/"
+    },
+    "para":{
+        "sensitive_volumes":{
+            	"names": ["Det1"],
+        	    "sensVolID": [1],
+		        "group": ["HPGe"]
+        },
+        "threads": 5,
+        "step_size": "500 MB"
+    },
+    "input": {
+        "tree": "g4sntuple",
+        "var":{
+            "edep": "Edep",
+            "vol": "volID",
+            "posx": "x",
+            "posy": "y",
+            "posz": "z"
+        }
+    },
+    "instr":
+    [
+        {
+            "name": "Group HPGe steps",
+            "module": "group_sensitive_volume",
+            "para": {
+                "group": "HPGe"
+            },
+            "input":{
+                "vol":"vol",
+                "edep": "edep",
+                "posx": "posx",
+                "posy": "posy",
+                "posz": "posz"
+            },
+            "output":{
+                "vol":  "ged_vol",
+                "edep": "ged_edep",
+                "posx": "ged_posx",
+                "posy": "ged_posy",
+                "posz": "ged_posz"
+            }
+        },
+        {
+            "name": "HPGe deadlayer",
+            "module": "active_volume",
+            "para": {
+                "group": "HPGe",
+                "type": "deadlayer",
+                "file": "./deadlayer_model.json"
+            },
+            "input": {
+                "posx": "ged_posx",
+                "posy": "ged_posy",
+                "posz": "ged_posz",
+                "vol":  "ged_vol",
+                "edep": "ged_edep"
+            },
+            "output": {
+                "posx": "ged_posx_a",
+                "posy": "ged_poxy_a",
+                "posz": "ged_posz_a",
+                "vol":  "ged_vol_a",
+                "edep": "ged_edep_a",
+                "vol_red": "ged_vol_red"
+            }
+        },
+        {
+            "name": "HPGe energy",
+            "module": "sum",
+            "input": {"val": "ged_edep_a"},
+            "output": {"val": "ged_etot"}
+        },
+        {
+            "name": "HPGe R90 estimator",
+            "module": "r90_estimator",
+            "input": {
+                "posx": "ged_posx_a",
+                "posy": "ged_poxy_a",
+                "posz": "ged_posz_a",
+                "edep": "ged_edep_a"
+            },
+            "output": {
+                "r90": "ged_r90"
+            }
+        },
+        {
+            "name": "get events with edep",
+            "module": "acceptance_range",
+            "para": {
+                "thr": [0.25,10]
+            },
+            "input": {"val": "ged_etot"},
+            "output": {"val": "mask_w_edep"}
+        },
+        {
+            "name": "only keep events with edep",
+            "module": "mask",
+            "input": {
+                "mask": "mask_w_edep",
+                "edep": "ged_etot",
+                "vol": "ged_vol_red",
+                "r90": "ged_r90"
+            },
+            "output": {
+                "edep": "ged_etot_w_edep",
+                "vol": "ged_vol_red_w_edep",
+                "r90": "ged_r90_w_edep"
+            }
+        }
+    ],
+    "output":[
+        "ged_etot_w_edep",
+        "ged_vol_red_w_edep",
+        "ged_r90_w_edep"
+    ]
+}

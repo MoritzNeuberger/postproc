@@ -38,6 +38,8 @@ def define_windows(t_sub, dT):
 
     @jit(forceobj=True, looplift=False)
     def recursion_function(t_sub, dT):
+        if len(t_sub) == 0:
+            return []
         if isinstance(t_sub[0], (list, List, ak.Array, np.ndarray)):
             output = []
             for i in range(len(t_sub)):
@@ -71,6 +73,8 @@ def generate_map(t_sub, w_t):
 
     @jit(forceobj=True, looplift=False)
     def _recursion_function(t_sub, w_t):
+        if len(t_sub) == 0:
+            return []
         if isinstance(t_sub[0], (list, List, ak.Array, np.ndarray)):
             output = []
             for i in range(len(t_sub)):
@@ -100,6 +104,8 @@ def generate_windowed_hits(mapping, v_in):
 
     # @jit(forceobj=True, looplift=False)
     def _recursion_function(mapping, v_in):
+        if len(mapping) == 0:
+            return []
         if isinstance(v_in[0], (list, List, ak.Array, np.ndarray)):
             return [
                 _recursion_function(mapping[i], v_in[i]) for i in range(len(mapping))

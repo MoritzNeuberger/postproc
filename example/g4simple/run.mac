@@ -1,0 +1,38 @@
+
+/run/verbose 1
+#/event/verbose 1
+#/tracking/verbose 1
+
+/g4simple/setRandomSeed true
+
+/g4simple/setReferencePhysList Shielding
+
+/g4simple/setDetectorGDML geCounter.gdml false
+
+/g4simple/setOutputFormat root
+
+# Change the name of the output file
+/analysis/setFileName ./output/geCounterOut.root
+
+# Example setting a full volume name
+/g4simple/setVolID geDetector_PV 1
+
+/g4simple/recordAllSteps false
+
+/run/initialize
+
+/g4simple/listPhysVols
+
+/gps/particle ion
+/gps/ion 81 208 0 0
+/gps/energy 0 MeV
+/gps/pos/shape Sphere
+/gps/pos/radius 2 mm
+/gps/pos/centre 0 0 -7.5 cm
+/gps/pos/confine source_PV
+
+/run/setCut 0.1 mm
+
+/run/printProgress 1000
+
+/run/beamOn 1000
