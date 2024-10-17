@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import tempfile
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
@@ -92,7 +93,7 @@ class process_manager:
             group.attrs["form"] = form.to_json()
             group.attrs["length"] = length
 
-        Path.rmdir(self.tmp_dir)
+        os.system(f"rm -rf {self.tmp_dir}")
 
     def run_processes(self):
         if self.threads > 1:
