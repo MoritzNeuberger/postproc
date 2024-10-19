@@ -37,6 +37,9 @@ def calculate_R90(v_edep_hwd, v_posx_hwd, v_posy_hwd, v_posz_hwd):
     v_posz_edep = v_edep_hwd * v_posz_hwd
     v_edep_e = ak.sum(v_edep_hwd, axis=-1)
 
+    if v_edep_e == 0:
+        return 0.0
+
     v_meanx = ak.sum(v_posx_edep, axis=-1) / v_edep_e
     v_meany = ak.sum(v_posy_edep, axis=-1) / v_edep_e
     v_meanz = ak.sum(v_posz_edep, axis=-1) / v_edep_e
